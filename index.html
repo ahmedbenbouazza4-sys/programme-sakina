@@ -1,0 +1,79 @@
+<!doctype html><html lang="ar" dir="rtl"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1f4e78"><link rel="manifest" href="manifest.json">
+<title>برنامج الساكنة</title>
+<style>
+<!doctype html><html lang="ar" dir="rtl"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#1f4e78"><link rel="manifest" href="manifest.json">
+<title>برنامج الساكنة</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial;background:#f4f6f8;color:#17324d}header{background:#1f4e78;color:white;padding:18px;text-align:center}h1{margin:0;font-size:22px}main{max-width:700px;margin:auto;padding:14px}.card{background:white;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 2px 10px #0001}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{border:0;border-radius:12px;padding:14px;font-size:16px;background:#e7f0f7;color:#17324d}.primary{background:#1f4e78;color:white}.danger{background:#fbe4e4;color:#9b1c1c}.full{width:100%}.hidden{display:none}input,textarea{width:100%;padding:12px;border:1px solid #ccd5dd;border-radius:10px;font-size:16px;margin:6px 0 12px}label{font-weight:bold}.row{display:flex;justify-content:space-between;align-items:center}.person{padding:12px;border:1px solid #ddd;border-radius:12px;margin:8px 0}.muted{color:#687784;font-size:13px}@media(max-width:480px){.grid{grid-template-columns:1fr}}
+</style></head><body>
+<header><h1>قاعدة بيانات الساكنة</h1><div>قيادة صخور الرحامنة</div></header><main>
+<section id="home" class="card"><div class="grid">
+<button class="btn primary" onclick="show('search')">🔎 البحث عن شخص</button><button class="btn" onclick="newPerson()">➕ إضافة شخص</button>
+<button class="btn" onclick="showAll()">📋 جميع الأشخاص</button><button class="btn" onclick="backup()">💾 نسخة احتياطية</button>
+</div></section>
+<section id="search" class="card hidden"><div class="row"><h2>البحث</h2><button class="btn" onclick="home()">الرئيسية</button></div><input id="q" placeholder="الاسم أو رقم البطاقة الوطنية" oninput="search()"><div id="results"></div></section>
+<section id="list" class="card hidden"><div class="row"><h2>جميع الأشخاص</h2><button class="btn" onclick="home()">الرئيسية</button></div><div id="all"></div></section>
+<section id="form" class="card hidden"><div class="row"><h2 id="ft">إضافة شخص</h2><button class="btn" onclick="home()">الرئيسية</button></div><form onsubmit="save(event)">
+<label>الاسم الكامل</label><input id="name" required><label>رقم البطاقة الوطنية</label><input id="cin" required>
+<label>اسم الأب</label><input id="father"><label>اسم الأم</label><input id="mother"><label>العنوان</label><input id="address">
+<label>الزوج/الزوجة</label><input id="spouse"><label>تاريخ الميلاد</label><input id="birth" type="date"><label>الهاتف</label><input id="phone"><label>ملاحظات</label><textarea id="notes"></textarea>
+<button class="btn primary full" type="submit">حفظ</button></form></section>
+<section id="detail" class="card hidden"><div class="row"><h2>بيانات الشخص</h2><button class="btn" onclick="home()">الرئيسية</button></div><div id="details"></div></section>
+</main>
+<script>
+const KEY="residents_v1",F=[["name","الاسم الكامل"],["cin","رقم البطاقة الوطنية"],["father","اسم الأب"],["mother","اسم الأم"],["address","العنوان"],["spouse","الزوج/الزوجة"],["birth","تاريخ الميلاد"],["phone","الهاتف"],["notes","ملاحظات"]];
+let data=JSON.parse(localStorage.getItem(KEY)||"[]"),editId=null;
+function saveDB(){localStorage.setItem(KEY,JSON.stringify(data))}
+function hide(){document.querySelectorAll("section").forEach(x=>x.classList.add("hidden"))}function show(id){hide();document.getElementById(id).classList.remove("hidden")}function home(){show("home")}
+function newPerson(){editId=null;document.querySelector("form").reset();document.getElementById("ft").textContent="إضافة شخص";show("form")}
+function save(e){e.preventDefault();let r={};F.forEach(([id])=>r[id]=document.getElementById(id).value.trim());let key=r.cin.toUpperCase();
+if(editId===null){if(data.some(x=>x.cin.toUpperCase()===key)){alert("رقم البطاقة الوطنية موجود مسبقًا");return}data.push(r)}
+else{let i=data.findIndex(x=>x.cin===editId);if(i<0)return;if(data.some((x,j)=>j!==i&&x.cin.toUpperCase()===key)){alert("رقم البطاقة الوطنية موجود مسبقًا");return}data[i]=r}
+saveDB();home()}
+function search(){let q=document.getElementById("q").value.toLowerCase();let r=data.filter(x=>(x.name||"").toLowerCase().includes(q)||(x.cin||"").toLowerCase().includes(q));document.getElementById("results").innerHTML=r.map(card).join("")||(q?"<p>لا توجد نتائج</p>":"")}
+function card(r){return `<div class="person"><b>${esc(r.name)}</b><div class="muted">رقم البطاقة: ${esc(r.cin)}</div><div>${esc(r.address||"")}</div><div class="grid"><button class="btn" onclick="detail('${enc(r.cin)}')">عرض</button><button class="btn" onclick="edit('${enc(r.cin)}')">تعديل</button></div></div>`}
+function showAll(){document.getElementById("all").innerHTML=data.map(card).join("")||"<p>لا توجد بيانات.</p>";show("list")}
+function detail(c){let r=data.find(x=>x.cin===dec(c));if(!r)return;document.getElementById("details").innerHTML=F.map(([id,l])=>`<p><b>${l}:</b> ${esc(r[id]||"")}</p>`).join("")+`<div class="grid"><button class="btn primary" onclick="edit('${enc(r.cin)}')">تعديل</button><button class="btn danger" onclick="del('${enc(r.cin)}')">حذف</button></div>`;show("detail")}
+function edit(c){let r=data.find(x=>x.cin===dec(c));if(!r)return;editId=r.cin;F.forEach(([id])=>document.getElementById(id).value=r[id]||"");document.getElementById("ft").textContent="تعديل بيانات الشخص";show("form")}
+function del(c){let id=dec(c);if(confirm("هل تريد حذف هذا السجل؟")){data=data.filter(x=>x.cin!==id);saveDB();home()}}
+function backup(){let b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="نسخة_احتياطية_الساكنة.json";a.click()}
+function enc(s){return encodeURIComponent(s)}function dec(s){return decodeURIComponent(s)}function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}home();
+</script></body></html>
+</style></head><body>
+<header><h1>قاعدة بيانات الساكنة</h1><div>قيادة صخور الرحامنة</div></header><main>
+<section id="home" class="card"><div class="grid">
+<button class="btn primary" onclick="show('search')">🔎 البحث عن شخص</button><button class="btn" onclick="newPerson()">➕ إضافة شخص</button>
+<button class="btn" onclick="showAll()">📋 جميع الأشخاص</button><button class="btn" onclick="backup()">💾 نسخة احتياطية</button>
+</div></section>
+<section id="search" class="card hidden"><div class="row"><h2>البحث</h2><button class="btn" onclick="home()">الرئيسية</button></div><input id="q" placeholder="الاسم أو رقم البطاقة الوطنية" oninput="search()"><div id="results"></div></section>
+<section id="list" class="card hidden"><div class="row"><h2>جميع الأشخاص</h2><button class="btn" onclick="home()">الرئيسية</button></div><div id="all"></div></section>
+<section id="form" class="card hidden"><div class="row"><h2 id="ft">إضافة شخص</h2><button class="btn" onclick="home()">الرئيسية</button></div><form onsubmit="save(event)">
+<label>الاسم الكامل</label><input id="name" required><label>رقم البطاقة الوطنية</label><input id="cin" required>
+<label>اسم الأب</label><input id="father"><label>اسم الأم</label><input id="mother"><label>العنوان</label><input id="address">
+<label>الزوج/الزوجة</label><input id="spouse"><label>تاريخ الميلاد</label><input id="birth" type="date"><label>الهاتف</label><input id="phone"><label>ملاحظات</label><textarea id="notes"></textarea>
+<button class="btn primary full" type="submit">حفظ</button></form></section>
+<section id="detail" class="card hidden"><div class="row"><h2>بيانات الشخص</h2><button class="btn" onclick="home()">الرئيسية</button></div><div id="details"></div></section>
+</main>
+<script>
+const KEY="residents_v1",F=[["name","الاسم الكامل"],["cin","رقم البطاقة الوطنية"],["father","اسم الأب"],["mother","اسم الأم"],["address","العنوان"],["spouse","الزوج/الزوجة"],["birth","تاريخ الميلاد"],["phone","الهاتف"],["notes","ملاحظات"]];
+let data=JSON.parse(localStorage.getItem(KEY)||"[]"),editId=null;
+function saveDB(){localStorage.setItem(KEY,JSON.stringify(data))}
+function hide(){document.querySelectorAll("section").forEach(x=>x.classList.add("hidden"))}function show(id){hide();document.getElementById(id).classList.remove("hidden")}function home(){show("home")}
+function newPerson(){editId=null;document.querySelector("form").reset();document.getElementById("ft").textContent="إضافة شخص";show("form")}
+function save(e){e.preventDefault();let r={};F.forEach(([id])=>r[id]=document.getElementById(id).value.trim());let key=r.cin.toUpperCase();
+if(editId===null){if(data.some(x=>x.cin.toUpperCase()===key)){alert("رقم البطاقة الوطنية موجود مسبقًا");return}data.push(r)}
+else{let i=data.findIndex(x=>x.cin===editId);if(i<0)return;if(data.some((x,j)=>j!==i&&x.cin.toUpperCase()===key)){alert("رقم البطاقة الوطنية موجود مسبقًا");return}data[i]=r}
+saveDB();home()}
+function search(){let q=document.getElementById("q").value.toLowerCase();let r=data.filter(x=>(x.name||"").toLowerCase().includes(q)||(x.cin||"").toLowerCase().includes(q));document.getElementById("results").innerHTML=r.map(card).join("")||(q?"<p>لا توجد نتائج</p>":"")}
+function card(r){return `<div class="person"><b>${esc(r.name)}</b><div class="muted">رقم البطاقة: ${esc(r.cin)}</div><div>${esc(r.address||"")}</div><div class="grid"><button class="btn" onclick="detail('${enc(r.cin)}')">عرض</button><button class="btn" onclick="edit('${enc(r.cin)}')">تعديل</button></div></div>`}
+function showAll(){document.getElementById("all").innerHTML=data.map(card).join("")||"<p>لا توجد بيانات.</p>";show("list")}
+function detail(c){let r=data.find(x=>x.cin===dec(c));if(!r)return;document.getElementById("details").innerHTML=F.map(([id,l])=>`<p><b>${l}:</b> ${esc(r[id]||"")}</p>`).join("")+`<div class="grid"><button class="btn primary" onclick="edit('${enc(r.cin)}')">تعديل</button><button class="btn danger" onclick="del('${enc(r.cin)}')">حذف</button></div>`;show("detail")}
+function edit(c){let r=data.find(x=>x.cin===dec(c));if(!r)return;editId=r.cin;F.forEach(([id])=>document.getElementById(id).value=r[id]||"");document.getElementById("ft").textContent="تعديل بيانات الشخص";show("form")}
+function del(c){let id=dec(c);if(confirm("هل تريد حذف هذا السجل؟")){data=data.filter(x=>x.cin!==id);saveDB();home()}}
+function backup(){let b=new Blob([JSON.stringify(data,null,2)],{type:"application/json"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="نسخة_احتياطية_الساكنة.json";a.click()}
+function enc(s){return encodeURIComponent(s)}function dec(s){return decodeURIComponent(s)}function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}home();
+</script></body></html>
